@@ -1,21 +1,51 @@
 import { useState, useEffect } from "react";
 import reactLogo from "./assets/react.svg";
 import viteLogo from "/vite.svg";
+import styled from "styled-components";
 import Cards from "./components/Cards.jsx";
+import Score from "./components/Score.jsx";
+import Modal from "./components/Modal.jsx";
+import Loader from "./components/Loader.jsx";
+import { GlobalStyle } from "./Theme.js";
 import "./App.css";
 
+const StyledApp = styled.div`
+  position: relative;
+
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+`;
+
 function App() {
+  const [isLoading, setIsLoading] = useState(true);
   const [dataset, setDataset] = useState([]);
   const [visibleCards, setVisibleCards] = useState([]);
   const [selectedCards, setSelectedCards] = useState([]);
   // TODO: score and game over
   const [score, setScore] = useState(0);
-  const [highScore, setHighScore] = useState(0); // TODO: local storage
+  const [highScore, setHighScore] = useState(
+    () => localStorage.getItem("highScore") || 0
+  ); // TODO: local storage
   const [gameOver, setGameOver] = useState(false);
 
   const NUM_CARDS = 6;
 
+  // GET data from external api
   useEffect(() => {
+    fetchData();
+  }, []);
+
+  // set the cards to be displayed after the dataset is loaded
+  useEffect(() => {
+    if (dataset.length > 0) {
+      setVisibleCards(dataset.slice(0, NUM_CARDS));
+    }
+  }, [dataset]);
+  const fetchData = async () => {
     const pokemonData = [];
     const fetchPromises = [];
     for (let i = 1; i <= 20; i++) {
@@ -35,24 +65,25 @@ function App() {
             id: pokemonData.length + 1,
           };
           pokemonData.push(pokemonInfo);
+        })
+        .catch((error) => {
+          console.error(error);
+        })
+        .finally(() => {
+          setIsLoading(false);
         });
       fetchPromises.push(fetchPromise);
     }
     Promise.all(fetchPromises).then(() => setDataset(pokemonData));
-  }, []);
+  };
 
-  useEffect(() => {
-    console.log("check length: ", dataset.length);
-    if (dataset.length > 0) {
-      setVisibleCards(dataset.slice(0, NUM_CARDS));
-    }
-  }, [dataset]);
-
+  // get some cards from the deck to display
   const getVisibleCards = (selectedCards) => {
     const reducedDeck = [];
     console.log("next: ", selectedCards.length);
+    // set a fixed amount of previously selected cards to be displayed
     const max_repeats =
-      selectedCards.length < NUM_CARDS ? selectedCards.length : NUM_CARDS - 1;
+      selectedCards.length < NUM_CARDS ? selectedCards.length : NUM_CARDS - 2;
 
     // get previously selected cards
     for (let i = 0; i < max_repeats; i++) {
@@ -78,14 +109,29 @@ function App() {
     setVisibleCards(reducedDeck);
   };
 
-  const handleCardClick = (id) => {
+  const updateScore = () => {
+    setScore(score + 1);
+    // update local storage
+    if (score + 1 > highScore) {
+      setHighScore(score + 1);
+      localStorage.setItem("highScore", score + 1);
+    }
+  };
+
+  const handleCardClick = (e, id) => {
+    // unfocus the card
+    e.target.blur();
+
+    // get the card from the dataset
     const card = dataset.find((card) => card.id === id);
-    // game logic here
+
     // check the current selected cards
     if (selectedCards.some((x) => x.id === id)) {
       // if the card is already selected, game over
+      handleGameOver();
       return;
     } else {
+      updateScore();
       setSelectedCards([...selectedCards, card]);
       getVisibleCards([...selectedCards, card]);
     }
@@ -95,13 +141,40 @@ function App() {
 
     // reset the selected cards
   };
+
+  const handleGameOver = () => {
+    setGameOver(true);
+  };
+
+  const handleResetClick = () => {
+    setGameOver(false);
+    setDataset([]);
+    setScore(0);
+    setSelectedCards([]);
+    setVisibleCards([]);
+    fetchData();
+  };
   // set the selected cards
   return (
-    <div className="App">
-      {dataset.length > 0 && (
-        <Cards cards={visibleCards} handleCardClick={handleCardClick} />
-      )}
-    </div>
+    <>
+      <GlobalStyle />
+      <StyledApp>
+        {isLoading && <Loader />}
+        {!gameOver && dataset.length > 0 && (
+          <>
+            <Score score={score} highScore={highScore} />
+            <Cards cards={visibleCards} handleCardClick={handleCardClick} />
+          </>
+        )}
+        {gameOver && (
+          <Modal
+            score={score}
+            gameOver={gameOver}
+            onResetClick={handleResetClick}
+          />
+        )}
+      </StyledApp>
+    </>
   );
 }
 
