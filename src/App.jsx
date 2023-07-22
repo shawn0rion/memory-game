@@ -77,6 +77,13 @@ function App() {
     Promise.all(fetchPromises).then(() => setDataset(pokemonData));
   };
 
+  useEffect(() => {
+    // blur the active element if any element (card) is focued
+    if (document.activeElement !== document.body) {
+      document.activeElement.blur();
+    }
+  }, [selectedCards]);
+
   // get some cards from the deck to display
   const getVisibleCards = (selectedCards) => {
     const reducedDeck = [];
@@ -118,10 +125,7 @@ function App() {
     }
   };
 
-  const handleCardClick = (e, id) => {
-    // unfocus the card
-    e.target.blur();
-
+  const handleCardClick = (id) => {
     // get the card from the dataset
     const card = dataset.find((card) => card.id === id);
 

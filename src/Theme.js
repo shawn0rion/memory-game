@@ -12,7 +12,7 @@ body{
     overflow: hidden;
     height: 100vh;
     width: 100%;
-background: linear-gradient(rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.5)), url(${Background});
+background: linear-gradient(rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.1)), url(${Background});
     background-blend-mode: screen;
     background-size: cover;
     background-position: center;
